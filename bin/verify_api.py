@@ -12,7 +12,8 @@ out.mkdir(parents=True, exist_ok=True)
 
 
 def run(name, method, path, expected, data=None):
-    command = ['curl', '--silent', '--show-error', '--include', '-X', method,
+    command = ['curl', '--silent', '--show-error', '--include',
+               '--connect-timeout', '10', '--max-time', '30', '-X', method,
                base + path]
     if base.startswith('http://localhost'):
         command += ['-H', 'X-Forwarded-Proto: https']
