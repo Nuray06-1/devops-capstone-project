@@ -1,5 +1,7 @@
 # devops-capstone-project
 
+[![CI Build](https://github.com/Nuray06-1/devops-capstone-project/actions/workflows/ci-build.yaml/badge.svg)](https://github.com/Nuray06-1/devops-capstone-project/actions/workflows/ci-build.yaml)
+
 Customer accounts microservice for the IBM DevOps Capstone Project. The project adds REST endpoints, automated tests, CI, security headers, Docker packaging, Kubernetes deployment and Tekton delivery to the IBM starter.
 
 # DevOps Capstone Template

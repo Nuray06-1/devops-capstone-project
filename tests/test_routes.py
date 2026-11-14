@@ -12,6 +12,7 @@ from tests.factories import AccountFactory
 from service.common import status  # HTTP Status Codes
 from service.models import db, Account, init_db
 from service.routes import app
+from service import talisman
 
 DATABASE_URI = os.getenv(
     "DATABASE_URI", "postgresql://postgres:postgres@localhost:5432/postgres"
@@ -30,6 +31,7 @@ class TestAccountService(TestCase):
     def setUpClass(cls):
         """Run once before all tests"""
         app.config["TESTING"] = True
+        talisman.force_https = False
         app.config["DEBUG"] = False
         app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URI
         app.logger.setLevel(logging.CRITICAL)
@@ -194,7 +196,6 @@ class TestAccountService(TestCase):
         """It should reject unsupported HTTP methods"""
         self.assertEqual(self.client.put(BASE_URL).status_code, 405)
 
-
     def test_internal_server_error(self):
         """It should return JSON for unexpected database failures"""
         from unittest.mock import patch
@@ -215,3 +216,30 @@ class TestAccountService(TestCase):
         self.assertEqual(response.get_json()['date_joined'], date.today().isoformat())
         self.assertIsNone(response.get_json()['phone_number'])
         self.assertEqual(self.client.get(response.headers['Location']).status_code, 200)
+
+    def test_security_headers(self):
+        """It should return security headers for HTTPS requests"""
+        response = self.client.get('/', environ_overrides={
+            'wsgi.url_scheme': 'https'})
+        self.assertEqual(response.status_code, 200)
+        expected = {'X-Frame-Options': 'SAMEORIGIN',
+                    'X-Content-Type-Options': 'nosniff',
+                    'Content-Security-Policy': "default-src 'self'; object-src 'none'"}
+        for key, value in expected.items():
+            self.assertEqual(response.headers.get(key), value)
+        self.assertIn('max-age=', response.headers['Strict-Transport-Security'])
+
+    def test_cors_security(self):
+        """It should return the course's public API CORS policy"""
+        response = self.client.get('/')
+        self.assertEqual(response.headers.get('Access-Control-Allow-Origin'), '*')
+
+    def test_https_redirect(self):
+        """It should redirect insecure production requests to HTTPS"""
+        talisman.force_https = True
+        try:
+            response = self.client.get('/')
+            self.assertEqual(response.status_code, 302)
+            self.assertTrue(response.headers['Location'].startswith('https://'))
+        finally:
+            talisman.force_https = False
