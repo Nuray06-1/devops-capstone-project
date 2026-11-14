@@ -194,3 +194,24 @@ class TestAccountService(TestCase):
         """It should reject unsupported HTTP methods"""
         self.assertEqual(self.client.put(BASE_URL).status_code, 405)
 
+
+    def test_internal_server_error(self):
+        """It should return JSON for unexpected database failures"""
+        from unittest.mock import patch
+        from werkzeug.exceptions import InternalServerError
+        with patch('service.routes.Account.all',
+                   side_effect=InternalServerError('Database unavailable')):
+            response = self.client.get(BASE_URL)
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.get_json()['error'], 'Internal Server Error')
+
+    def test_create_without_optional_fields(self):
+        """It should assign today's date and allow no phone number"""
+        from datetime import date
+        response = self.client.post(BASE_URL, json={
+            'name': 'Sample Customer', 'email': 'sample@example.com',
+            'address': 'Test address'})
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.get_json()['date_joined'], date.today().isoformat())
+        self.assertIsNone(response.get_json()['phone_number'])
+        self.assertEqual(self.client.get(response.headers['Location']).status_code, 200)
