@@ -1,3 +1,7 @@
+# devops-capstone-project
+
+Customer accounts microservice for the IBM DevOps Capstone Project. The project adds REST endpoints, automated tests, CI, security headers, Docker packaging, Kubernetes deployment and Tekton delivery to the IBM starter.
+
 # DevOps Capstone Template
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)

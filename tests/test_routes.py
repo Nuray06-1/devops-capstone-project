@@ -123,4 +123,74 @@ class TestAccountService(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
 
-    # ADD YOUR TEST CASES HERE ...
+    def test_read_an_account(self):
+        """It should Read an existing Account"""
+        account = self._create_accounts(1)[0]
+        response = self.client.get(f"{BASE_URL}/{account.id}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), account.serialize())
+
+    def test_account_not_found(self):
+        """It should return 404 for a missing Account"""
+        self.assertEqual(self.client.get(f"{BASE_URL}/99999").status_code, 404)
+
+    def test_get_account_list(self):
+        """It should List all Accounts"""
+        accounts = self._create_accounts(3)
+        response = self.client.get(BASE_URL)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.get_json()), len(accounts))
+
+    def test_list_empty(self):
+        """It should return an empty list when no Accounts exist"""
+        response = self.client.get(BASE_URL)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), [])
+
+    def test_update_account(self):
+        """It should Update and persist an Account"""
+        account = self._create_accounts(1)[0]
+        data = account.serialize()
+        data["name"] = "Updated Customer"
+        response = self.client.put(f"{BASE_URL}/{account.id}", json=data)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["name"], data["name"])
+        saved = self.client.get(f"{BASE_URL}/{account.id}").get_json()
+        self.assertEqual(saved["name"], data["name"])
+        self.assertEqual(saved["id"], account.id)
+
+    def test_update_missing(self):
+        """It should not Update a missing Account"""
+        response = self.client.put(f"{BASE_URL}/99999",
+                                   json=AccountFactory().serialize())
+        self.assertEqual(response.status_code, 404)
+
+    def test_update_bad_data(self):
+        """It should reject an incomplete update"""
+        account = self._create_accounts(1)[0]
+        response = self.client.put(f"{BASE_URL}/{account.id}", json={})
+        self.assertEqual(response.status_code, 400)
+
+    def test_update_wrong_media(self):
+        """It should reject a non-JSON update"""
+        account = self._create_accounts(1)[0]
+        response = self.client.put(f"{BASE_URL}/{account.id}", data="invalid")
+        self.assertEqual(response.status_code, 415)
+
+    def test_delete_account(self):
+        """It should Delete an Account and return no content"""
+        account = self._create_accounts(1)[0]
+        response = self.client.delete(f"{BASE_URL}/{account.id}")
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.data, b"")
+        self.assertEqual(self.client.get(f"{BASE_URL}/{account.id}").status_code,
+                         404)
+
+    def test_delete_missing(self):
+        """It should keep DELETE idempotent for a missing Account"""
+        self.assertEqual(self.client.delete(f"{BASE_URL}/99999").status_code, 204)
+
+    def test_method_not_allowed(self):
+        """It should reject unsupported HTTP methods"""
+        self.assertEqual(self.client.put(BASE_URL).status_code, 405)
+
