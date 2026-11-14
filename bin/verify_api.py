@@ -10,6 +10,7 @@ base = os.environ.get('API_URL', 'http://localhost:8080').rstrip('/')
 out = Path(os.environ.get('EVIDENCE_DIR', '/home/project/evidence'))
 out.mkdir(parents=True, exist_ok=True)
 
+
 def run(name, method, path, expected, data=None):
     command = ['curl', '--silent', '--show-error', '--include', '-X', method,
                base + path]
@@ -24,6 +25,7 @@ def run(name, method, path, expected, data=None):
     assert actual == expected, (name, actual, result.stdout)
     print(name, actual)
     return json.loads(body) if body.strip() else None
+
 
 account = {'name': 'Sample Customer', 'email': 'sample@example.com',
            'address': '123 Example Street', 'phone_number': '555-0100',
